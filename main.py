@@ -1,4 +1,4 @@
-# python amocrm.py --domain ovvladimir --login ov.vladimir@mail.ru --password Ghjcnj1967
+# python amocrm.py --domain ***** --login *****@mail.ru --password *****
 from selenium import webdriver
 from tqdm import tqdm
 import requests
@@ -16,18 +16,12 @@ app = Flask(__name__)
 def request_context():
     start = arrow.now().format('YYYY-MM-DD HH:mm:ss')
     contentsDictJsonALL = {}
-    '''
+
     ap = argparse.ArgumentParser()
     ap.add_argument("-d", "--domain", required=True, help=" ")
     ap.add_argument("-l", "--login", required=True, help=" ")
     ap.add_argument("-p", "--password", required=True, help=" ")
     args = vars(ap.parse_args())
-    '''
-    args = {
-        'domain': 'ovvladimir',
-        'login': 'ov.vladimir@mail.ru',
-        'password': 'Ghjcnj1967'
-    }
 
     # Данные для авторизации
     amo_domain = f'https://{args["domain"]}.amocrm.ru'
