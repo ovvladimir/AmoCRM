@@ -10,9 +10,9 @@ start = time.strftime('%X')
 
 # Данные для авторизации
 amo = 'https://www.amocrm.ru'
-amo_user = 'ov.vladimir@mail.ru'
-amo_password = 'Ghjcnj1967'
-# amo_key = '519312ab2e0b6baa74731b5774c91319eb35b3e4'
+amo_user = '*****@mail.ru'
+amo_password = '*****'
+# amo_key = '*****************************'
 
 options = webdriver.ChromeOptions()
 options.binary_location = 'chrome/chrome'
