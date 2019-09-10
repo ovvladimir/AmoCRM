@@ -1,63 +1,124 @@
-import json
 import requests
-import time
-import arrow
 from pprint import pprint
+import arrow
 
-start = arrow.now().format('YYYY-MM-DD HH:mm:ss')
+# Subdomain AmoCRM
+amo_domain = 'https://*****.amocrm.ru'
+# Login AmoCRM
+amo_user = '*****@mail.ru'
+# Key API
+amo_key = '***************'
 
-# Domain
-amocrm_domain = 'https://*****.amocrm.ru'
-# Login
-amocrm_user = '*****@mail.ru'
-# API key
-amocrm_key = '**********************************'
-cookie = {'cookies': None}
+today = arrow.now().format('YYYY-MM-DD HH:mm:ss')
+print(today)
+state = {'cookies': None}
+
+
+# Обработка вывода
+def output_processing(item, level=0, path=[]):
+    path_str = " > ".join(map(str, path))
+    if isinstance(item, dict):
+        print(f"[dict  {path_str}")
+        for key, val in item.items():
+            output_processing(val, level+1, [*path, key])
+    elif isinstance(item, list):
+        print(f"[list  {path_str}")
+        for i, val in enumerate(item):
+            output_processing(val, level+1, [*path, i])
+    else:
+        print(f'|      {path_str}={str(item)}')
 
 
 # Авторизация
-def auth(user, key):
-    url = f'{amocrm_domain}/private/api/auth.php'
-    data = {'USER_LOGIN': user, 'USER_HASH': key}
-    r = s.post(url, data=data, params={'type': 'json'})
+def auth(user, user_hash):
+    url = amo_domain + '/private/api/auth.php'
+    data = {
+        'USER_LOGIN': user,
+        'USER_HASH': user_hash
+    }
+    res = s.post(url, data=data, params={'type': 'json'})
 
-    print('authorization status', r.status_code)
+    print('status code', res.status_code)
 
-    if r.status_code == 200:
-        cookie['cookies'] = r.cookies
-        return r.json()
+    if res.status_code == 200:
+        state['cookies'] = res.cookies
+        return res.json()
 
 
 with requests.Session() as s:
-    result = auth(amocrm_user, amocrm_key)
-    pprint(result)
+    auth_result = auth(amo_user, amo_key)
+    pprint(auth_result)
+    # output_processing(auth_result)
 
-    print('-'*25, 'Запрос параметра аккаунта', '-'*25)
-    r = s.get(f'{amocrm_domain}/api/v2/account',  # cookies=cookie['cookies']
-              params={'with': 'pipelines,groups,note_types,task_types'})
-    # params={'with': 'users&free_users=Y'})
-    if r.status_code == 200:
-        print('-'*25, 'Авторизация', '-'*25)
-        data = r.json()
-    pprint(data)
+    print('-'*15, 'Запрос параметра аккаунта', '-'*15)
+    res = s.get(f'{amo_domain}/api/v2/account',  # cookies=state['cookies']
+                params={'with': 'pipelines,groups,note_types,task_types'})  # params={'with': 'users&free_users=Y'})
+    if res.status_code == 200:
+        data = res.json()
+        # pprint(data)
+        output_processing(data)
 
-    print('-'*25, 'Запрос информации о лидах', '-'*25)
-    r = s.get(f'{amocrm_domain}/api/v2/leads')
+    print('-'*15, 'Запрос информации о лидах', '-'*15)
+    res = s.get(f'{amo_domain}/api/v2/leads')
     # params={'with': 'is_price_modified_by_robot,loss_reason_name'})
-    data = r.json()
-    pprint(data)
+    if res.status_code == 200:
+        data = res.json()
+        # pprint(data)
+        output_processing(data)
 
-    print('-'*25, 'Запрос информации о диалогах', '-'*25)
-    r = s.get(f'{amocrm_domain}/api/v2/notes',
-              params={'type': 'message_paragraph'})
-    # params={'type': 'contact/lead/company/task'}  # params={'id': 6599375}
-    data = r.json()
-    pprint(data)
+    print('-'*15, 'Запрос информации о диалогах', '-'*15)
+    res = s.get(f'{amo_domain}/api/v2/notes',  # ?id=22037173&type=lead)
+                params={'element_id': 3113639, 'type': 'lead'})
+    # params={'id': 22037173, 'type': 'lead'}
+    # params={'type': 'lead'}
+    # params={'type': 'message_paragraph'}
+    # params={'type': 'contact/lead/company/task'} или
+    if res.status_code == 200:
+        data = res.json()
+        dt = [data['_embedded']['items'][i]['text']
+              for i, word in enumerate(data['_embedded']['items'])
+              if 'text' in word]
+        print(dt)
+        # pprint(data)
+        output_processing(data)
 
-    print('-'*25, 'ONLINE ЧАТЫ', '-'*25)
-    r = s.get(f'{amocrm_domain}/private/api/v2/json/accounts/current',
-              params={'amojo': 'Y'})
-    data = r.json()
-    pprint(data)
+    print('-'*15, 'GET ЗАДАЧИ', '-'*15)
+    date_to = arrow.utcnow().timestamp
+    res = s.get(f'{amo_domain}/api/v2/tasks?filter[date_create][from]=1564703999&filter[date_create][to]={date_to}')
+    # ?filter[status][]=0
+    if res.status_code == 200:
+        data = res.json()
+        output_processing(data)
+    else:
+        print(res.status_code)
 
-print('-'*10, f"started at {start} - finished at {time.strftime('%X')}", '-'*10)
+    print('-'*15, 'POST ЗАДАЧИ', '-'*15)
+    res = s.post(f"{amo_domain}/api/v2/tasks",
+                 json={
+                    "add": [{
+                        "element_id": "3113639",
+                        "element_type": "2",
+                        "complete_till_at": "1567321200",
+                        "task_type": "1",
+                        "text": "ПроверкаПроверкаПроверка"
+                    }]
+                 })
+    if res.status_code == 200 or res.status_code == 204:
+        data = res.json()
+        output_processing(data)
+    else:
+        print(res.status_code)
+
+    '''
+    print('-'*15, 'ONLINE ЧАТЫ', '-'*15)
+    res = s.get(f'{amo_domain}/private/api/v2/json/accounts/current',
+                params={'amojo': 'Y'})
+    if res.status_code == 200:
+        data = res.json()
+        # pprint(data)
+        output_processing(data)
+    '''
+'''
+with open('data.txt', 'w') as fd:
+        fd.write(str(data))
+'''
